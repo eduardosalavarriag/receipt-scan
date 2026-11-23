@@ -10,6 +10,23 @@ from __future__ import annotations
 
 import re
 from decimal import Decimal, InvalidOperation
+from typing import TypedDict
+
+
+class StoreField(TypedDict):
+    value: str | None
+    confidence: float
+
+
+class TotalField(TypedDict):
+    value: str | None
+    currency: str | None
+    confidence: float
+
+
+class ExtractedFields(TypedDict):
+    store: StoreField
+    total: TotalField
 
 # Keywords that mark the line carrying the grand total. Checked case-insensitively
 # as substrings so "GESAMTBETRAG" and "ZU ZAHLEN" both match.
@@ -96,13 +113,8 @@ def _format(amount: Decimal) -> str:
     return format(amount, "f")
 
 
-def extract_fields(text: str) -> dict[str, object]:
+def extract_fields(text: str) -> ExtractedFields:
     """Extract store and total fields from OCR text.
-
-    Returns a dict shaped as::
-
-        {"store": {"value": ..., "confidence": ...},
-         "total": {"value": ..., "currency": ..., "confidence": ...}}
 
     ``value`` is ``None`` with low confidence when nothing could be found.
     """
@@ -130,12 +142,12 @@ def extract_fields(text: str) -> dict[str, object]:
         total = None
         currency = None
 
-    store_field: dict[str, object] = {
+    store_field: StoreField = {
         "value": store,
         "confidence": _RULE_CONFIDENCE if store else 0.0,
     }
     if total is not None:
-        total_field: dict[str, object] = {
+        total_field: TotalField = {
             "value": _format(total),
             "currency": currency,
             "confidence": _RULE_CONFIDENCE,

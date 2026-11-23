@@ -194,15 +194,7 @@ class EvaluationResult:
 # ---------------------------------------------------------------------------
 def _predict(words: list[Word]) -> tuple[str | None, str | None]:
     fields = extract_fields(reconstruct_text(words))
-    store = fields["store"]
-    total = fields["total"]
-    assert isinstance(store, dict) and isinstance(total, dict)
-    store_value = store["value"]
-    total_value = total["value"]
-    return (
-        store_value if isinstance(store_value, str) else None,
-        total_value if isinstance(total_value, str) else None,
-    )
+    return fields["store"]["value"], fields["total"]["value"]
 
 
 def _majority(values: list[str | None]) -> str | None:
