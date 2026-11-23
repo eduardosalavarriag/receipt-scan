@@ -16,7 +16,7 @@ from __future__ import annotations
 import json
 from collections.abc import Iterator
 from pathlib import Path
-from typing import TypedDict
+from typing import NotRequired, TypedDict
 
 IMAGES_DIRNAME = "images"
 LABELS_DIRNAME = "labels"
@@ -32,6 +32,10 @@ class Label(TypedDict):
     company: str | None
     total: str | None
     words: list[Word]
+    # Retakes of one physical receipt share a ``receipt_id`` so ``evaluate`` can
+    # fold them into a single majority vote. Absent on single-shot examples, in
+    # which case each example is its own receipt.
+    receipt_id: NotRequired[str | None]
 
 
 def images_dir(data_dir: Path | str) -> Path:

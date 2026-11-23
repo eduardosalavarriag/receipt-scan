@@ -33,16 +33,28 @@ def _download() -> None:
         print(f"  {source}: {count} new example(s)")
 
 
+def _evaluate() -> None:
+    from .evaluate import evaluate_data_dir, format_report
+
+    data_dir = load_data_dir()
+    print(f"Evaluating the extractor on {data_dir} ...\n")
+    result = evaluate_data_dir(data_dir)
+    print(format_report(result))
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(prog="receipt-scan")
     sub = parser.add_subparsers(dest="command")
     sub.add_parser("serve", help="Run the HTTP service (default).")
     sub.add_parser("download", help="Fill the data directory with training data.")
+    sub.add_parser("evaluate", help="Score the current extractor on the data directory.")
     args = parser.parse_args(argv)
 
     command = args.command or "serve"
     if command == "download":
         _download()
+    elif command == "evaluate":
+        _evaluate()
     else:
         _serve()
     return 0

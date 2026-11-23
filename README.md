@@ -116,8 +116,30 @@ data/
 
 `box` is an axis-aligned `[x0, y0, x1, y1]` rectangle in image pixels. `total`
 is an exact decimal string with a dot (`"51.76"`) or `null`. `source` is one of
-`sroie`, `cord`, `synthetic` (generated German) or `labelled`. Point the data
-directory at a different path with `DATA_DIR` (default `/data`).
+`sroie`, `cord`, `synthetic` (generated German) or `labelled`. A label may also
+carry an optional `receipt_id`; several photos of one physical receipt share it
+so `evaluate` folds them into a single majority vote. Point the data directory at
+a different path with `DATA_DIR` (default `/data`).
+
+## Scoring the extractor (`evaluate`)
+
+Score the current extractor against any data folder:
+
+```bash
+docker run --rm -v ./data:/data receipt-scan evaluate
+```
+
+It reports, for both the store and the total:
+
+- **accuracy** — store allows small OCR typos, total is exact to the cent;
+- a **per-source breakdown** (`sroie` / `cord` / `synthetic` / `labelled`);
+- **retakes folded by majority vote** — photos sharing a `receipt_id` count as
+  one receipt;
+- an **OCR-miss vs picker-miss** split of the failures: whether the right answer
+  was never among the OCR words (OCR miss) or was there but the extractor chose
+  wrong (picker miss).
+
+Run on the simple rules with no model present, it gives the baseline score.
 
 ## Development
 
