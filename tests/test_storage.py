@@ -55,4 +55,7 @@ def test_s3_image_false_skips_upload(client: TestClient, s3_env: None) -> None:
             params={"image": "false"},
         )
         assert resp.status_code == 200, resp.text
-        assert resp.json() == {}
+        body = resp.json()
+        assert "image" not in body
+        assert "image_url" not in body and "key" not in body
+        assert "store" in body and "total" in body

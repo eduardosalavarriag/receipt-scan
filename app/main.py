@@ -9,6 +9,7 @@ from fastapi.responses import JSONResponse
 
 from . import __version__
 from .config import Settings, load_settings
+from .extract import extract_fields
 from .imaging import (
     DecodeError,
     UnsupportedImageError,
@@ -16,6 +17,7 @@ from .imaging import (
     encode_png,
     process_receipt,
 )
+from .ocr import run_ocr
 from .storage import StorageError, upload_png
 
 app = FastAPI(title="receipt-scan", version=__version__)
@@ -66,9 +68,14 @@ async def scan(
         return _error(400, str(exc))
 
     processed = process_receipt(rgb)
+    ocr_text = run_ocr(processed, settings.ocr_lang)
+    fields = extract_fields(ocr_text)
     png = encode_png(processed)
 
-    body: dict[str, object] = {}
+    body: dict[str, object] = {
+        "store": fields["store"],
+        "total": fields["total"],
+    }
 
     if settings.s3 is not None:
         if image:

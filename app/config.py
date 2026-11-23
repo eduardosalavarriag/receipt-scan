@@ -30,6 +30,7 @@ class S3Config:
 class Settings:
     max_upload_bytes: int
     s3: S3Config | None
+    ocr_lang: str
 
 
 def _get_int(name: str, default: int) -> int:
@@ -60,4 +61,5 @@ def load_settings() -> Settings:
     return Settings(
         max_upload_bytes=_get_int("MAX_UPLOAD_BYTES", DEFAULT_MAX_UPLOAD_BYTES),
         s3=load_s3_config(),
+        ocr_lang=os.environ.get("OCR_LANG", "deu+eng").strip() or "deu+eng",
     )

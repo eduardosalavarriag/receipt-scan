@@ -5,7 +5,7 @@ from __future__ import annotations
 import io
 
 import numpy as np
-from PIL import Image, ImageDraw
+from PIL import Image, ImageDraw, ImageFont
 
 
 def make_receipt_photo(
@@ -45,6 +45,39 @@ def make_receipt_photo(
     mdraw = ImageDraw.Draw(mask)
     solid = Image.new("L", paper.size, 255).rotate(angle, expand=True, fillcolor=0)
     mask.paste(solid, (0, 0))
+    bg.paste(rotated, (px, py), mask)
+    return _encode(bg, fmt)
+
+
+def make_text_receipt_photo(
+    lines: list[str],
+    *,
+    angle: float = 12.0,
+    canvas: tuple[int, int] = (900, 1200),
+    receipt: tuple[int, int] = (480, 760),
+    background: int = 45,
+    fmt: str = "JPEG",
+) -> bytes:
+    """Render a receipt carrying real text lines, tilted on a dark background.
+
+    The text is drawn with a scalable bundled font so Tesseract can read it back
+    after the scan pipeline crops and straightens the receipt.
+    """
+    cw, ch = canvas
+    rw, rh = receipt
+    paper = Image.new("RGB", (rw, rh), (250, 250, 248))
+    draw = ImageDraw.Draw(paper)
+    font = ImageFont.load_default(size=30)
+    y = 40
+    for line in lines:
+        draw.text((30, y), line, fill=(15, 15, 15), font=font)
+        y += 70
+
+    bg = Image.new("RGB", (cw, ch), (background, background, background))
+    rotated = paper.rotate(angle, expand=True, fillcolor=(background, background, background))
+    mask = Image.new("L", paper.size, 255).rotate(angle, expand=True, fillcolor=0)
+    px = (cw - rotated.width) // 2
+    py = (ch - rotated.height) // 2
     bg.paste(rotated, (px, py), mask)
     return _encode(bg, fmt)
 
