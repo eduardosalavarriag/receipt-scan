@@ -31,10 +31,6 @@ class Settings:
     max_upload_bytes: int
     s3: S3Config | None
 
-    @property
-    def storage_enabled(self) -> bool:
-        return self.s3 is not None
-
 
 def _get_int(name: str, default: int) -> int:
     raw = os.environ.get(name)
