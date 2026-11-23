@@ -85,6 +85,40 @@ are used by the AWS SDK.
 | 415    | HEIC/HEIF image — export as JPEG and retry.      |
 | 502    | Object storage upload failed.                   |
 
+## Training data (`download`)
+
+The image ships as a small command-line tool as well as a service. Fill a data
+directory with training data:
+
+```bash
+docker run --rm -v ./data:/data receipt-scan download
+```
+
+This writes three sources into `/data` in one dataset format:
+
+- **SROIE** (ICDAR 2019) and **CORD** (NAVER Clova) — public receipt datasets,
+  fetched and converted.
+- **Generated German receipts** — word-level rewrites of the English labels
+  (`TOTAL` → `SUMME`/`ZU ZAHLEN`/`GESAMT`, `CASH` → `BAR`, `CHANGE` →
+  `RÜCKGELD`, `TAX` → `MwSt`), amounts reformatted to `1.234,50 €`, German-style
+  store names. These run offline from whatever English labels are already on
+  disk, so the labelled store and total still appear in the receipt's own words.
+
+Re-running `download` never duplicates receipts.
+
+### Dataset format
+
+```
+data/
+  images/<id>.jpg      the receipt image
+  labels/<id>.json     {"source", "company", "total", "words": [{text, box}]}
+```
+
+`box` is an axis-aligned `[x0, y0, x1, y1]` rectangle in image pixels. `total`
+is an exact decimal string with a dot (`"51.76"`) or `null`. `source` is one of
+`sroie`, `cord`, `synthetic` (generated German) or `labelled`. Point the data
+directory at a different path with `DATA_DIR` (default `/data`).
+
 ## Development
 
 ```bash

@@ -4,6 +4,11 @@ from __future__ import annotations
 
 import os
 from dataclasses import dataclass
+from pathlib import Path
+
+# Where the dataset (images/ + labels/) and model live. Mounted at /data in the
+# container (``docker run -v ./data:/data ...``).
+DEFAULT_DATA_DIR = "/data"
 
 # Default maximum upload size: 15 MB. Phone photos are large, but this keeps a
 # single request from exhausting memory.
@@ -55,6 +60,12 @@ def load_s3_config() -> S3Config | None:
         public_url_base=(os.environ.get("S3_PUBLIC_URL_BASE", "").strip() or None),
         key_prefix=os.environ.get("S3_KEY_PREFIX", "scans").strip().strip("/") or "scans",
     )
+
+
+def load_data_dir() -> Path:
+    """The data directory (``DATA_DIR`` env, default ``/data``)."""
+    raw = os.environ.get("DATA_DIR", "").strip() or DEFAULT_DATA_DIR
+    return Path(raw)
 
 
 def load_settings() -> Settings:

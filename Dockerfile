@@ -20,7 +20,11 @@ RUN pip install --no-cache-dir -r requirements.txt
 COPY app ./app
 
 ENV OCR_LANG=deu+eng \
-    PORT=8000
+    PORT=8000 \
+    DATA_DIR=/data
 EXPOSE 8000
 
-CMD ["sh", "-c", "uvicorn app.main:app --host 0.0.0.0 --port ${PORT}"]
+# `serve` (default) runs the HTTP service; other commands (e.g. `download`)
+# override the CMD: `docker run -v ./data:/data <image> download`.
+ENTRYPOINT ["python", "-m", "app"]
+CMD ["serve"]
