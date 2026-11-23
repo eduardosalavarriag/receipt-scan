@@ -70,22 +70,22 @@ async def scan(
     processed = process_receipt(rgb)
     ocr_text = run_ocr(processed, settings.ocr_lang)
     fields = extract_fields(ocr_text)
-    png = encode_png(processed)
 
     body: dict[str, object] = {
         "store": fields["store"],
         "total": fields["total"],
     }
 
-    if settings.s3 is not None:
-        if image:
+    if image:
+        png = encode_png(processed)
+        if settings.s3 is not None:
             try:
                 key, url = upload_png(settings.s3, png)
             except StorageError:
                 return _error(502, "Failed to store the image.")
             body["key"] = key
             body["image_url"] = url
-    elif image:
-        body["image"] = base64.b64encode(png).decode("ascii")
+        else:
+            body["image"] = base64.b64encode(png).decode("ascii")
 
     return JSONResponse(status_code=200, content=body)
