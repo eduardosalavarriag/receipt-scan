@@ -1,0 +1,12 @@
+.git
+node_modules
+tests
+.github
+**/__pycache__
+*.pyc
+.pytest_cache
+.mypy_cache
+README.md
+requirements-dev.txt
+package.json
+package-lock.json

@@ -1,0 +1,10 @@
+{
+  "name": "receipt-scan",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Receipt scan service (Python). npm scripts proxy to the Python toolchain.",
+  "scripts": {
+    "test": "pytest",
+    "typecheck": "mypy app"
+  }
+}
