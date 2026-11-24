@@ -81,6 +81,25 @@ When `API_TOKEN` is set, requests without a matching bearer token get `401`;
 Standard AWS credential variables (`AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`)
 are used by the AWS SDK.
 
+### Labelling page (`/label`)
+
+Set `LABELING=true` (which requires `API_TOKEN`, or the service refuses to start)
+to enable a plain, phone-friendly page at `/label` for growing the dataset from
+your own receipts:
+
+```bash
+docker run --rm -p 8000:8000 -v ./data:/data \
+  -e LABELING=true -e API_TOKEN=secret receipt-scan
+# open http://localhost:8000/label on your phone
+```
+
+Take or upload a photo (the camera opens on phones), check the cleaned image and
+the store and total the model suggests, correct them if needed, and save. Each
+save writes an image and a label — including the OCR words and boxes — into
+`/data` with `source: "labelled"`, so `train` and `evaluate` pick it up like any
+other example. The page asks for the token once and remembers it in the browser.
+`/label` returns `404` when `LABELING` is unset.
+
 ### Responses
 
 | Status | When                                            |

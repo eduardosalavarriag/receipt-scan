@@ -13,6 +13,7 @@ from fastapi.responses import JSONResponse
 from . import __version__
 from .config import Settings, load_data_dir, load_settings, validate_settings
 from .extract import extract_fields
+from .label import router as label_router
 from .imaging import (
     DecodeError,
     UnsupportedImageError,
@@ -24,8 +25,10 @@ from .model import load_cached_model
 from .ocr import run_ocr, run_ocr_words
 from .storage import StorageError, upload_png
 
-# Endpoints reachable without a token even when API_TOKEN is set.
-_PUBLIC_PATHS = frozenset({"/health"})
+# Endpoints reachable without a token even when API_TOKEN is set. The /label
+# shell carries no data and loads without a token; it then asks for the token and
+# sends it on /label/suggest and /label/save, which stay guarded.
+_PUBLIC_PATHS = frozenset({"/health", "/label"})
 
 
 @asynccontextmanager
@@ -36,6 +39,7 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
 
 
 app = FastAPI(title="receipt-scan", version=__version__, lifespan=lifespan)
+app.include_router(label_router)
 
 
 def get_settings() -> Settings:
