@@ -1,0 +1,4 @@
+{
+  "total_accuracy": 0.875,
+  "note": "Total accuracy the accuracy guard (#10) protects, measured on this fixed CORD sample. Raising or lowering it is a deliberate, reviewable change."
+}

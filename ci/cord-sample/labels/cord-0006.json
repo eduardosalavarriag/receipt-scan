@@ -1,0 +1,43 @@
+{
+  "source": "cord",
+  "company": "PIZZA HUT",
+  "total": "31.00",
+  "words": [
+    {
+      "text": "PIZZA HUT",
+      "box": [
+        20,
+        20,
+        146,
+        50
+      ]
+    },
+    {
+      "text": "Large Pizza 25.00",
+      "box": [
+        20,
+        70,
+        258,
+        100
+      ]
+    },
+    {
+      "text": "Garlic Bread 6.00",
+      "box": [
+        20,
+        120,
+        258,
+        150
+      ]
+    },
+    {
+      "text": "TOTAL 31.00",
+      "box": [
+        20,
+        170,
+        174,
+        200
+      ]
+    }
+  ]
+}

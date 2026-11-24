@@ -1,0 +1,43 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+      - name: Install Tesseract
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y tesseract-ocr tesseract-ocr-deu tesseract-ocr-eng
+      - name: Install dependencies
+        run: pip install -r requirements-dev.txt
+      - name: Typecheck
+        run: mypy app --ignore-missing-imports
+      - name: Run tests
+        run: pytest -q
+      - name: Accuracy guard (fixed CORD sample)
+        run: python -m app guard
+
+  docker-build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build image
+        run: docker build -t receipt-scan:ci .
+      - name: Smoke-test the image
+        run: |
+          docker run -d --name scan -p 8000:8000 receipt-scan:ci
+          for i in $(seq 1 30); do
+            if curl -sf http://localhost:8000/health; then ok=1; break; fi
+            sleep 2
+          done
+          docker rm -f scan
+          test "${ok:-0}" = "1"

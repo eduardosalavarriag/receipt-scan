@@ -1,0 +1,75 @@
+name: Release
+
+# Pushing a version tag (e.g. `v1.2.0`) trains the built-in model, bakes it into
+# the image and publishes `ghcr.io/eduardosalavarriag/receipt-scan:<version>` and
+# `:latest`. The published image answers `/scan` with the built-in model, so it
+# needs no `/data` mount.
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: read
+  packages: write
+
+env:
+  IMAGE: ghcr.io/eduardosalavarriag/receipt-scan
+  DATA_DIR: ${{ github.workspace }}/release-data
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      # SROIE (ICDAR 2019), CORD (NAVER Clova) and the generated German receipts.
+      # The blind test set is never fetched here, so it stays unseen by training.
+      - name: Build the training dataset
+        run: python -m app download
+
+      # train reads the stored OCR words (no Tesseract needed) and writes
+      # model.joblib into DATA_DIR; copy it to where the image bundles it
+      # (app/builtin_model.joblib — see app.model.BUILTIN_MODEL_PATH).
+      - name: Train the built-in model
+        run: |
+          python -m app train
+          cp "${DATA_DIR}/model.joblib" app/builtin_model.joblib
+
+      - name: Derive the version from the tag
+        run: echo "VERSION=${GITHUB_REF_NAME#v}" >> "$GITHUB_ENV"
+
+      - name: Build the release image
+        run: docker build -t "${IMAGE}:${VERSION}" -t "${IMAGE}:latest" .
+
+      - name: Verify the built-in model serves without a /data mount
+        run: |
+          docker run -d --name scan -p 8000:8000 "${IMAGE}:${VERSION}"
+          for i in $(seq 1 30); do
+            if curl -sf http://localhost:8000/health; then ok=1; break; fi
+            sleep 2
+          done
+          docker exec scan python -c \
+            "from app.model import BUILTIN_MODEL_PATH; assert BUILTIN_MODEL_PATH.exists()"
+          docker rm -f scan
+          test "${ok:-0}" = "1"
+
+      - name: Log in to ghcr.io
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Push the versioned and latest tags
+        run: |
+          docker push "${IMAGE}:${VERSION}"
+          docker push "${IMAGE}:latest"

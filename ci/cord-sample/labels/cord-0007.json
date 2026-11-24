@@ -1,0 +1,43 @@
+{
+  "source": "cord",
+  "company": "BURGER KING",
+  "total": "12.60",
+  "words": [
+    {
+      "text": "BURGER KING",
+      "box": [
+        20,
+        20,
+        174,
+        50
+      ]
+    },
+    {
+      "text": "Whopper 7.60",
+      "box": [
+        20,
+        70,
+        188,
+        100
+      ]
+    },
+    {
+      "text": "Onion Rings 5.00",
+      "box": [
+        20,
+        120,
+        244,
+        150
+      ]
+    },
+    {
+      "text": "TOTAL 12.60",
+      "box": [
+        20,
+        170,
+        174,
+        200
+      ]
+    }
+  ]
+}

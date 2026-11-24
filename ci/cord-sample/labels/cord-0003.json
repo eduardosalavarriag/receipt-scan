@@ -1,0 +1,43 @@
+{
+  "source": "cord",
+  "company": "SEVEN ELEVEN",
+  "total": "3.20",
+  "words": [
+    {
+      "text": "SEVEN ELEVEN",
+      "box": [
+        20,
+        20,
+        188,
+        50
+      ]
+    },
+    {
+      "text": "Water 1.20",
+      "box": [
+        20,
+        70,
+        160,
+        100
+      ]
+    },
+    {
+      "text": "Chips 2.00",
+      "box": [
+        20,
+        120,
+        160,
+        150
+      ]
+    },
+    {
+      "text": "TOTAL 3.20",
+      "box": [
+        20,
+        170,
+        160,
+        200
+      ]
+    }
+  ]
+}
