@@ -65,11 +65,8 @@ def _split_by_receipt(
     examples: list[tuple[str, Label]], fraction: float, seed: int
 ) -> tuple[list[tuple[str, Label]], list[tuple[str, Label]]]:
     """Split examples into (train, holdout) without separating a receipt's retakes."""
-    keys: list[str] = []
-    for example_id, label in examples:
-        key = group_key(example_id, label)
-        if key not in keys:
-            keys.append(key)
+    # Unique receipt keys in first-seen order (dict preserves insertion order).
+    keys = list(dict.fromkeys(group_key(i, lab) for i, lab in examples))
     rng = random.Random(seed)
     shuffled = keys[:]
     rng.shuffle(shuffled)

@@ -220,8 +220,7 @@ def rules_predict(words: list[Word]) -> tuple[str | None, str | None]:
 def _majority(values: list[str | None]) -> str | None:
     """Most common prediction, ties broken toward the first one seen."""
     counts = Counter(values)
-    best = max(counts, key=lambda v: (counts[v], -values.index(v)))
-    return best
+    return max(counts, key=lambda v: (counts[v], -values.index(v)))
 
 
 def group_key(example_id: str, label: Label) -> str:
@@ -242,21 +241,16 @@ def evaluate_examples(
 ) -> EvaluationResult:
     """Score ``predict`` over the given labelled examples, folding retakes."""
     groups: dict[str, list[Label]] = {}
-    order: list[str] = []
     examples = 0
     for example_id, label in examples_iter:
         examples += 1
         key = group_key(example_id, label)
-        if key not in groups:
-            groups[key] = []
-            order.append(key)
-        groups[key].append(label)
+        groups.setdefault(key, []).append(label)
 
     result = EvaluationResult(groups=len(groups), examples=examples)
     sources: dict[str, SourceStats] = {}
 
-    for key in order:
-        members = groups[key]
+    for members in groups.values():
         source = Counter(m["source"] for m in members).most_common(1)[0][0]
         gold_store = Counter(m.get("company") for m in members).most_common(1)[0][0]
         gold_total = Counter(m.get("total") for m in members).most_common(1)[0][0]
