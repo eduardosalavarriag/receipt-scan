@@ -31,11 +31,11 @@ from .dataset import Word
 from .evaluate import group_lines
 from .extract import (
     ExtractedFields,
-    StoreField,
-    TotalField,
     amounts_in,
     detect_currency,
     format_amount,
+    make_store_field,
+    make_total_field,
 )
 
 # Where the trained model lives inside the data directory, and the optional
@@ -218,19 +218,10 @@ class Model:
         """Store and total fields in the same shape as the rules extractor."""
         store_value, store_conf = self.predict_store(words)
         total_value, currency, total_conf = self.predict_total(words)
-        store_field: StoreField = {
-            "value": store_value,
-            "confidence": store_conf if store_value is not None else 0.0,
+        return {
+            "store": make_store_field(store_value, store_conf),
+            "total": make_total_field(total_value, currency, total_conf),
         }
-        if total_value is not None:
-            total_field: TotalField = {
-                "value": total_value,
-                "currency": currency,
-                "confidence": total_conf,
-            }
-        else:
-            total_field = {"value": None, "currency": None, "confidence": 0.0}
-        return {"store": store_field, "total": total_field}
 
 
 # ---------------------------------------------------------------------------

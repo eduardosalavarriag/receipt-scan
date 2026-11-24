@@ -4,9 +4,8 @@
 directory with training data; ``train`` fits the ML pickers and writes
 ``model.joblib``; ``evaluate`` scores the current extractor; ``guard`` fails CI
 when total accuracy on the fixed CORD sample drops below the recorded baseline.
-In the container this
-is wired as ``ENTRYPOINT ["python", "-m", "app"]`` with a default ``CMD`` of
-``serve``, so ``docker run <image>`` serves and
+In the container this is wired as ``ENTRYPOINT ["python", "-m", "app"]`` with a
+default ``CMD`` of ``serve``, so ``docker run <image>`` serves and
 ``docker run -v ./data:/data <image> train`` trains.
 """
 

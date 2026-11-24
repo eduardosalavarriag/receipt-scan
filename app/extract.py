@@ -114,6 +114,20 @@ def format_amount(amount: Decimal) -> str:
     return format(amount, "f")
 
 
+def make_store_field(value: str | None, confidence: float) -> StoreField:
+    """Build a store field, forcing confidence to 0.0 when there is no value."""
+    return {"value": value, "confidence": confidence if value is not None else 0.0}
+
+
+def make_total_field(
+    value: str | None, currency: str | None, confidence: float
+) -> TotalField:
+    """Build a total field, clearing currency and confidence when there is no value."""
+    if value is None:
+        return {"value": None, "currency": None, "confidence": 0.0}
+    return {"value": value, "currency": currency, "confidence": confidence}
+
+
 def extract_fields(text: str) -> ExtractedFields:
     """Extract store and total fields from OCR text.
 
@@ -143,17 +157,8 @@ def extract_fields(text: str) -> ExtractedFields:
         total = None
         currency = None
 
-    store_field: StoreField = {
-        "value": store,
-        "confidence": _RULE_CONFIDENCE if store else 0.0,
+    total_value = format_amount(total) if total is not None else None
+    return {
+        "store": make_store_field(store, _RULE_CONFIDENCE),
+        "total": make_total_field(total_value, currency, _RULE_CONFIDENCE),
     }
-    if total is not None:
-        total_field: TotalField = {
-            "value": format_amount(total),
-            "currency": currency,
-            "confidence": _RULE_CONFIDENCE,
-        }
-    else:
-        total_field = {"value": None, "currency": None, "confidence": 0.0}
-
-    return {"store": store_field, "total": total_field}
