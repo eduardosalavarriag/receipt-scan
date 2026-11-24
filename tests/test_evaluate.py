@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 from pathlib import Path
 
 from app.dataset import Label, write_example
@@ -103,8 +104,6 @@ def test_retakes_count_once_by_majority_vote(tmp_path: Path) -> None:
     # Tie every example to the same receipt.
     for ident in ("r-a", "r-b", "r-c"):
         label_path = tmp_path / "labels" / f"{ident}.json"
-        import json
-
         data = json.loads(label_path.read_text())
         data["receipt_id"] = "receipt-1"
         label_path.write_text(json.dumps(data))
