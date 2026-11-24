@@ -5,7 +5,7 @@ from __future__ import annotations
 import io
 
 import numpy as np
-from PIL import Image, ImageDraw, ImageFont
+from PIL import Image, ImageDraw, ImageFilter, ImageFont
 
 
 def make_receipt_photo(
@@ -46,6 +46,46 @@ def make_receipt_photo(
     solid = Image.new("L", paper.size, 255).rotate(angle, expand=True, fillcolor=0)
     mask.paste(solid, (0, 0))
     bg.paste(rotated, (px, py), mask)
+    return _encode(bg, fmt)
+
+
+def make_receipt_on_light_background(
+    *,
+    angle: float = 12.0,
+    canvas: tuple[int, int] = (900, 1200),
+    receipt: tuple[int, int] = (360, 720),
+    background: int = 225,
+    fmt: str = "JPEG",
+) -> bytes:
+    """Render a tilted receipt on a *bright* table, close in brightness to paper.
+
+    The paper (250) sits only a little brighter than the background (default
+    225), so the "largest bright region" heuristic cannot separate them. A soft
+    drop shadow rings the paper — as a real receipt on a bright desk casts —
+    giving the edge that OpenCV edge detection relies on.
+    """
+    cw, ch = canvas
+    rw, rh = receipt
+    bg = Image.new("RGB", (cw, ch), (background, background, background))
+
+    paper = Image.new("RGB", (rw, rh), (250, 250, 248))
+    draw = ImageDraw.Draw(paper)
+    draw.rectangle([30, 30, rw - 30, 70], fill=(20, 20, 20))
+    for i in range(6):
+        y = 120 + i * 60
+        draw.rectangle([30, y, rw - 60, y + 18], fill=(40, 40, 40))
+    draw.rectangle([30, rh - 120, rw - 30, rh - 80], fill=(15, 15, 15))
+
+    rotated = paper.rotate(angle, expand=True, fillcolor=(background, background, background))
+    solid = Image.new("L", paper.size, 255).rotate(angle, expand=True, fillcolor=0)
+    px = (cw - rotated.width) // 2
+    py = (ch - rotated.height) // 2
+
+    # Soft shadow halo around the whole paper so there is a clear edge on a
+    # bright table even though paper and table are close in brightness.
+    shadow_mask = solid.filter(ImageFilter.GaussianBlur(12))
+    bg.paste((140, 140, 140), (px, py + 6), shadow_mask)
+    bg.paste(rotated, (px, py), solid)
     return _encode(bg, fmt)
 
 

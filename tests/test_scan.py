@@ -11,6 +11,7 @@ from PIL import Image
 from tests.helpers import (
     fake_heic_bytes,
     make_plain_photo,
+    make_receipt_on_light_background,
     make_receipt_photo,
     make_text_receipt_photo,
 )
@@ -42,6 +43,23 @@ def test_scan_returns_grayscale_cropped_upright(client: TestClient) -> None:
     h, w = arr.shape
     assert h < 1200 and w < 900
     # Upright portrait receipt: taller than wide.
+    assert h > w
+
+
+def test_scan_crops_receipt_on_light_background(client: TestClient) -> None:
+    # A tilted receipt on a bright table (close in brightness to the paper):
+    # OpenCV edge detection must still find, crop and straighten it.
+    photo = make_receipt_on_light_background(
+        angle=12.0, canvas=(900, 1200), receipt=(360, 720)
+    )
+    resp = client.post(
+        "/scan", files={"file": ("receipt.jpg", photo, "image/jpeg")}
+    )
+    assert resp.status_code == 200, resp.text
+    img = _decode_b64_png(resp.json()["image"])
+    w, h = img.size
+    # Cropped smaller than the 900x1200 canvas, and upright (taller than wide).
+    assert h < 1200 and w < 900
     assert h > w
 
 

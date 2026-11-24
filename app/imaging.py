@@ -82,34 +82,41 @@ def _order_corners(pts: np.ndarray) -> np.ndarray:
 def find_receipt_quad(gray: np.ndarray) -> np.ndarray | None:
     """Locate the receipt as a 4-point quad, or None if not confident.
 
-    This bootstrap implementation uses the "largest bright region" heuristic:
-    threshold the paper away from a darker background and fit a rotated box.
-    Issue #3 replaces it with edge detection.
+    Uses OpenCV edge detection (Canny) and fits a four-sided outline to the
+    paper's border. This finds a receipt even when it sits on a background
+    close in brightness to the paper (a bright table or white desk), where a
+    "largest bright region" threshold would fail. When no confident four-sided
+    outline is found, returns None so the caller keeps the photo whole.
     """
     h, w = gray.shape[:2]
+    image_area = float(h * w)
+
     blurred = cv2.GaussianBlur(gray, (5, 5), 0)
-    _, mask = cv2.threshold(
-        blurred, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU
-    )
-    kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (15, 15))
-    mask = cv2.morphologyEx(mask, cv2.MORPH_CLOSE, kernel)
+    edges = cv2.Canny(blurred, 50, 150)
+    # Dilate the (1px) Canny edges so the receipt's border forms a single
+    # closed contour even where it is faint or broken.
+    kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (9, 9))
+    edges = cv2.dilate(edges, kernel, iterations=2)
+    edges = cv2.morphologyEx(edges, cv2.MORPH_CLOSE, kernel)
 
     contours, _ = cv2.findContours(
-        mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE
+        edges, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE
     )
     if not contours:
         return None
-    largest = max(contours, key=cv2.contourArea)
-    area = cv2.contourArea(largest)
-    image_area = float(h * w)
-    # Require the region to be a meaningful part of the frame, but not the whole
-    # frame (that would just be a bright photo, not a receipt on a background).
-    if area < 0.05 * image_area or area > 0.98 * image_area:
-        return None
 
-    rect = cv2.minAreaRect(largest)
-    box = cv2.boxPoints(rect).astype(np.float32)
-    return _order_corners(box)
+    # Look at the largest outlines and accept the first that approximates a
+    # convex quadrilateral covering a meaningful (but not whole) part of the
+    # frame.
+    for contour in sorted(contours, key=cv2.contourArea, reverse=True)[:5]:
+        area = cv2.contourArea(contour)
+        if area < 0.05 * image_area or area > 0.98 * image_area:
+            continue
+        peri = cv2.arcLength(contour, True)
+        approx = cv2.approxPolyDP(contour, 0.02 * peri, True)
+        if len(approx) == 4 and cv2.isContourConvex(approx):
+            return _order_corners(approx.reshape(4, 2).astype(np.float32))
+    return None
 
 
 def warp_receipt(image: np.ndarray, quad: np.ndarray) -> np.ndarray:
