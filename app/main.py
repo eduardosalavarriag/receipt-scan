@@ -13,14 +13,9 @@ from fastapi.responses import JSONResponse
 from . import __version__
 from .config import Settings, load_data_dir, load_settings, validate_settings
 from .extract import extract_fields
+from .http import UploadError, read_upload_image
+from .imaging import encode_png, process_receipt
 from .label import router as label_router
-from .imaging import (
-    DecodeError,
-    UnsupportedImageError,
-    decode_image,
-    encode_png,
-    process_receipt,
-)
 from .model import load_cached_model
 from .ocr import run_ocr, run_ocr_words
 from .storage import StorageError, upload_png
@@ -87,18 +82,10 @@ async def scan(
         except ValueError:
             pass
 
-    data = await file.read()
-    if len(data) > settings.max_upload_bytes:
-        return _error(413, "The uploaded image is too large.")
-    if not data:
-        return _error(400, "The upload is empty.")
-
     try:
-        rgb = decode_image(data)
-    except UnsupportedImageError as exc:
-        return _error(415, str(exc))
-    except DecodeError as exc:
-        return _error(400, str(exc))
+        rgb = await read_upload_image(file, settings)
+    except UploadError as exc:
+        return _error(exc.status, exc.message)
 
     processed = process_receipt(rgb)
     model = load_cached_model(load_data_dir())

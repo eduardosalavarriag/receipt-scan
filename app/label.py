@@ -25,13 +25,8 @@ from fastapi.responses import HTMLResponse, JSONResponse
 from .config import load_data_dir, load_settings
 from .dataset import Label, Word, write_example
 from .extract import extract_fields
-from .imaging import (
-    DecodeError,
-    UnsupportedImageError,
-    decode_image,
-    encode_png,
-    process_receipt,
-)
+from .http import UploadError, read_upload_image
+from .imaging import encode_png, process_receipt
 from .model import load_cached_model
 from .ocr import run_ocr, run_ocr_words
 
@@ -90,18 +85,10 @@ async def label_suggest(file: UploadFile = File(...)) -> JSONResponse:
     if not settings.labeling:
         return _not_found()
 
-    data = await file.read()
-    if len(data) > settings.max_upload_bytes:
-        return _error(413, "The uploaded image is too large.")
-    if not data:
-        return _error(400, "The upload is empty.")
-
     try:
-        rgb = decode_image(data)
-    except UnsupportedImageError as exc:
-        return _error(415, str(exc))
-    except DecodeError as exc:
-        return _error(400, str(exc))
+        rgb = await read_upload_image(file, settings)
+    except UploadError as exc:
+        return _error(exc.status, exc.message)
 
     processed = process_receipt(rgb)
     words = run_ocr_words(processed, settings.ocr_lang)
