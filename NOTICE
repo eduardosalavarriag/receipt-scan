@@ -1,0 +1,51 @@
+receipt-scan
+Copyright (c) the receipt-scan authors
+
+This product includes software and training data from third parties, credited
+below. The receipt-scan source code itself is licensed under the terms in the
+LICENSE file; the notices here cover the datasets the built-in model is trained
+on and the OCR engine the image bundles.
+
+-------------------------------------------------------------------------------
+SROIE (ICDAR 2019 Robust Reading Challenge on Scanned Receipts OCR and
+Information Extraction)
+-------------------------------------------------------------------------------
+The built-in model is trained in part on the SROIE dataset, released for the
+ICDAR 2019 competition. If you use this dataset in your own work, please cite:
+
+  Z. Huang, K. Chen, J. He, X. Bai, D. Karatzas, S. Lu, C. V. Jawahar,
+  "ICDAR 2019 Competition on Scanned Receipt OCR and Information Extraction",
+  ICDAR 2019.
+
+Dataset: https://rrc.cvc.uab.es/?ch=13
+
+-------------------------------------------------------------------------------
+CORD (Consolidated Receipt Dataset) — NAVER Clova
+-------------------------------------------------------------------------------
+The built-in model is trained in part on the CORD dataset, published by
+NAVER Clova under the Creative Commons Attribution 4.0 (CC BY 4.0) license.
+If you use this dataset, please cite:
+
+  S. Park, S. Shin, B. Lee, J. Lee, J. Surh, M. Seo, H. Lee,
+  "CORD: A Consolidated Receipt Dataset for Post-OCR Parsing",
+  Document Intelligence Workshop at NeurIPS 2019.
+
+Dataset: https://github.com/clovaai/cord
+
+-------------------------------------------------------------------------------
+Tesseract OCR
+-------------------------------------------------------------------------------
+This image bundles the Tesseract OCR engine and its language data
+(tesseract-ocr, tesseract-ocr-deu, tesseract-ocr-eng), which read text from the
+cleaned receipt image. Tesseract is licensed under the Apache License 2.0.
+
+Project: https://github.com/tesseract-ocr/tesseract
+
+-------------------------------------------------------------------------------
+Generated German receipts
+-------------------------------------------------------------------------------
+The "synthetic" training source is produced offline by this project from the
+public English labels above (word-level German rewrites). No additional
+third-party data is involved.
+
+The blind test set is never used for training.

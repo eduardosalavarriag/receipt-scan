@@ -5,6 +5,16 @@ cleaned-up grayscale image.
 
 ## Quickstart
 
+Pull the published image — it ships with a **built-in model** trained on SROIE,
+CORD and generated German receipts, so `/scan` reads the store and total out of
+the box with no `/data` mount:
+
+```bash
+docker run --rm -p 8000:8000 ghcr.io/eduardosalavarriag/receipt-scan:latest
+```
+
+Or build it yourself:
+
 ```bash
 docker build -t receipt-scan .
 docker run --rm -p 8000:8000 receipt-scan
@@ -167,8 +177,12 @@ for totals, whether the line reads like a grand total and how its amount compare
 to the largest on the receipt. The picker's probability for the winning candidate
 becomes the answer's confidence.
 
-When `model.joblib` is present, `/scan` and `evaluate` use the pickers instead of
-the simple rules; otherwise they fall back to the rules automatically.
+When a `model.joblib` is present in the data folder, `/scan` and `evaluate` use
+the pickers instead of the simple rules. If none is there, they fall back to the
+**built-in model** baked into the published image, and if that too is missing
+(e.g. a bare local build), to the simple rules — automatically, in that order. A
+`model.joblib` you train and mount under `/data` always wins over the built-in
+one, so you can fine-tune the shipped image on your own receipts.
 
 ## Scoring the extractor (`evaluate`)
 
@@ -207,6 +221,49 @@ OCR words only — no images, no network — so it is fully deterministic in CI.
 The baseline is a committed value, so raising or lowering it is a deliberate,
 reviewable diff: bump `total_accuracy` only when an improvement is real and
 intended. See `ci/cord-sample/README.md` for how the sample relates to CORD.
+
+## Adding a Tesseract language
+
+OCR is only as good as the installed Tesseract language data. The image ships
+with German and English (`tesseract-ocr-deu`, `tesseract-ocr-eng`) and defaults
+to `OCR_LANG=deu+eng`. To read receipts in another language, install that
+language's Tesseract data and point `OCR_LANG` at it.
+
+Each language is an apt package named `tesseract-ocr-<lang>`, where `<lang>` is
+the Tesseract code (`fra` French, `ita` Italian, `spa` Spanish, `nld` Dutch, …).
+Add it in a derived image:
+
+```dockerfile
+FROM ghcr.io/eduardosalavarriag/receipt-scan:latest
+USER root
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends tesseract-ocr-fra \
+    && rm -rf /var/lib/apt/lists/*
+ENV OCR_LANG=deu+eng+fra
+```
+
+`OCR_LANG` takes any Tesseract spec, so combine codes with `+`
+(`OCR_LANG=eng+fra`) to read mixed-language receipts. Run
+`tesseract --list-langs` inside the container to see what is installed.
+
+## Releases
+
+Pushing a version tag (e.g. `v1.2.0`) builds and publishes the image to the
+GitHub Container Registry with a freshly trained built-in model inside:
+
+- `ghcr.io/eduardosalavarriag/receipt-scan:<version>` — the tagged release;
+- `ghcr.io/eduardosalavarriag/receipt-scan:latest` — the most recent release.
+
+The release workflow downloads the public datasets, trains the pickers, bakes
+`model.joblib` into the image and verifies `/scan` answers with the built-in
+model before pushing. See `.github/workflows/release.yml`.
+
+## Credits
+
+The built-in model is trained on the **SROIE** (ICDAR 2019) and **CORD**
+(NAVER Clova) public receipt datasets plus generated German receipts, and the
+image bundles the **Tesseract** OCR engine. See the [`NOTICE`](NOTICE) file for
+full attributions and citations.
 
 ## Development
 
