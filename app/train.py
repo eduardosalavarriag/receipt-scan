@@ -51,8 +51,6 @@ DEFAULT_HOLDOUT_FRACTION = 0.2
 
 @dataclass
 class TrainResult:
-    examples: int
-    receipts: int
     train_receipts: int
     holdout_receipts: int
     store_rows: int
@@ -171,8 +169,6 @@ def train_model(
     train_keys = {group_key(i, lab) for i, lab in train}
     holdout_keys = {group_key(i, lab) for i, lab in holdout}
     return TrainResult(
-        examples=len(examples),
-        receipts=len(train_keys | holdout_keys),
         train_receipts=len(train_keys),
         holdout_receipts=len(holdout_keys),
         store_rows=store_rows,
