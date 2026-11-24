@@ -171,6 +171,24 @@ It reports, for both the store and the total:
 
 Run on the simple rules with no model present, it gives the baseline score.
 
+## Accuracy guard (CI)
+
+Every pull request runs an **accuracy guard** so a change that makes reading
+worse is flagged before merge:
+
+```bash
+python -m app guard        # exits non-zero if total accuracy regresses
+```
+
+It scores the extractor over a small, fixed CORD sample committed under
+`ci/cord-sample/` and fails when **total** accuracy drops below the baseline
+recorded in `ci/cord-sample/baseline.json`. The guard reads the sample's stored
+OCR words only — no images, no network — so it is fully deterministic in CI.
+
+The baseline is a committed value, so raising or lowering it is a deliberate,
+reviewable diff: bump `total_accuracy` only when an improvement is real and
+intended. See `ci/cord-sample/README.md` for how the sample relates to CORD.
+
 ## Development
 
 ```bash

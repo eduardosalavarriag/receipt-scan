@@ -1,0 +1,43 @@
+{
+  "source": "cord",
+  "company": "SUBWAY SANDWICHES",
+  "total": "9.99",
+  "words": [
+    {
+      "text": "SUBWAY SANDWICHES",
+      "box": [
+        20,
+        20,
+        258,
+        50
+      ]
+    },
+    {
+      "text": "Footlong 8.99",
+      "box": [
+        20,
+        70,
+        202,
+        100
+      ]
+    },
+    {
+      "text": "Cookie 1.00",
+      "box": [
+        20,
+        120,
+        174,
+        150
+      ]
+    },
+    {
+      "text": "TOTAL 9.99",
+      "box": [
+        20,
+        170,
+        160,
+        200
+      ]
+    }
+  ]
+}

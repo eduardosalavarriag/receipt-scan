@@ -1,0 +1,43 @@
+{
+  "source": "cord",
+  "company": "STARBUCKS COFFEE",
+  "total": "7.50",
+  "words": [
+    {
+      "text": "STARBUCKS COFFEE",
+      "box": [
+        20,
+        20,
+        244,
+        50
+      ]
+    },
+    {
+      "text": "Caffe Latte 4.50",
+      "box": [
+        20,
+        70,
+        244,
+        100
+      ]
+    },
+    {
+      "text": "Blueberry Muffin 3.00",
+      "box": [
+        20,
+        120,
+        314,
+        150
+      ]
+    },
+    {
+      "text": "TOTAL 7.50",
+      "box": [
+        20,
+        170,
+        160,
+        200
+      ]
+    }
+  ]
+}

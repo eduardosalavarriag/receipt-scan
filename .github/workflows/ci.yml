@@ -23,6 +23,8 @@ jobs:
         run: mypy app --ignore-missing-imports
       - name: Run tests
         run: pytest -q
+      - name: Accuracy guard (fixed CORD sample)
+        run: python -m app guard
 
   docker-build:
     runs-on: ubuntu-latest

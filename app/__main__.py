@@ -2,7 +2,9 @@
 
 ``serve`` (the default) runs the HTTP service; ``download`` fills the data
 directory with training data; ``train`` fits the ML pickers and writes
-``model.joblib``; ``evaluate`` scores the current extractor. In the container this
+``model.joblib``; ``evaluate`` scores the current extractor; ``guard`` fails CI
+when total accuracy on the fixed CORD sample drops below the recorded baseline.
+In the container this
 is wired as ``ENTRYPOINT ["python", "-m", "app"]`` with a default ``CMD`` of
 ``serve``, so ``docker run <image>`` serves and
 ``docker run -v ./data:/data <image> train`` trains.
@@ -70,6 +72,16 @@ def _train() -> None:
     print(f"\nWrote model to {result.model_path}")
 
 
+def _guard(sample_dir: str | None) -> int:
+    from .guard import DEFAULT_SAMPLE_DIR, format_guard, run_guard
+
+    sample = sample_dir or DEFAULT_SAMPLE_DIR
+    print(f"Accuracy guard on {sample} ...\n")
+    result = run_guard(sample)
+    print(format_guard(result))
+    return 0 if result.passed else 1
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(prog="receipt-scan")
     sub = parser.add_subparsers(dest="command")
@@ -77,6 +89,15 @@ def main(argv: list[str] | None = None) -> int:
     sub.add_parser("download", help="Fill the data directory with training data.")
     sub.add_parser("train", help="Fit the ML pickers and write model.joblib.")
     sub.add_parser("evaluate", help="Score the current extractor on the data directory.")
+    guard = sub.add_parser(
+        "guard",
+        help="Fail if total accuracy on the fixed CORD sample drops below the baseline.",
+    )
+    guard.add_argument(
+        "--sample-dir",
+        default=None,
+        help="Sample directory (labels/ + baseline.json). Defaults to ci/cord-sample.",
+    )
     args = parser.parse_args(argv)
 
     command = args.command or "serve"
@@ -86,6 +107,8 @@ def main(argv: list[str] | None = None) -> int:
         _train()
     elif command == "evaluate":
         _evaluate()
+    elif command == "guard":
+        return _guard(args.sample_dir)
     else:
         _serve()
     return 0
