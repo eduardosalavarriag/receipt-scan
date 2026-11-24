@@ -161,8 +161,7 @@ def _total_in_words(words: list[Word], gold: str | None) -> bool:
         return False
     for word in words:
         for token in word["text"].split():
-            amount = parse_amount(token)
-            if amount is not None and amount.quantize(Decimal("0.01")) == want:
+            if _to_cents(token) == want:
                 return True
     return False
 

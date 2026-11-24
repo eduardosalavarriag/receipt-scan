@@ -190,8 +190,8 @@ class Model:
         cands = store_candidates(words)
         if not cands:
             return None, 0.0
-        scores = _positive_scores(self.store_clf, _store_features(
-            self.vectorizer, cands, _bounds(words)))
+        features = _store_features(self.vectorizer, cands, _bounds(words))
+        scores = _positive_scores(self.store_clf, features)
         best = int(np.argmax(scores))
         return cands[best].text, float(scores[best])
 
@@ -199,8 +199,8 @@ class Model:
         cands = total_candidates(words)
         if not cands:
             return None, None, 0.0
-        scores = _positive_scores(self.total_clf, _total_features(
-            self.vectorizer, cands, _bounds(words)))
+        features = _total_features(self.vectorizer, cands, _bounds(words))
+        scores = _positive_scores(self.total_clf, features)
         best = int(np.argmax(scores))
         chosen = cands[best]
         currency = detect_currency(chosen.line_text) or detect_currency(
