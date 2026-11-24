@@ -14,11 +14,17 @@ import argparse
 import os
 import sys
 
-from .config import load_data_dir
+from .config import ConfigError, load_data_dir, load_settings, validate_settings
 
 
 def _serve() -> None:
     import uvicorn
+
+    try:
+        validate_settings(load_settings())
+    except ConfigError as exc:
+        print(f"Cannot start: {exc}", file=sys.stderr)
+        raise SystemExit(1) from exc
 
     port = int(os.environ.get("PORT", "8000"))
     uvicorn.run("app.main:app", host="0.0.0.0", port=port)  # noqa: S104

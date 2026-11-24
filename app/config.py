@@ -36,6 +36,12 @@ class Settings:
     max_upload_bytes: int
     s3: S3Config | None
     ocr_lang: str
+    api_token: str | None
+    labeling: bool
+
+
+class ConfigError(Exception):
+    """Raised when the configuration is invalid and the service must not start."""
 
 
 def _get_int(name: str, default: int) -> int:
@@ -46,6 +52,11 @@ def _get_int(name: str, default: int) -> int:
         return int(raw)
     except ValueError:
         return default
+
+
+def _get_bool(name: str) -> bool:
+    raw = os.environ.get(name, "").strip().lower()
+    return raw in ("1", "true", "yes", "on")
 
 
 def load_s3_config() -> S3Config | None:
@@ -73,4 +84,20 @@ def load_settings() -> Settings:
         max_upload_bytes=_get_int("MAX_UPLOAD_BYTES", DEFAULT_MAX_UPLOAD_BYTES),
         s3=load_s3_config(),
         ocr_lang=os.environ.get("OCR_LANG", "deu+eng").strip() or "deu+eng",
+        api_token=(os.environ.get("API_TOKEN", "").strip() or None),
+        labeling=_get_bool("LABELING"),
     )
+
+
+def validate_settings(settings: Settings) -> None:
+    """Fail fast on configuration that must not be served.
+
+    The labelling UI writes to ``/data`` and must never be exposed without a
+    token, so ``LABELING=true`` requires ``API_TOKEN`` to be set.
+    """
+    if settings.labeling and settings.api_token is None:
+        raise ConfigError(
+            "LABELING=true requires API_TOKEN to be set, so the labelling "
+            "page is never exposed without authentication. Set API_TOKEN or "
+            "unset LABELING."
+        )

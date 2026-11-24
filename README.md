@@ -71,6 +71,12 @@ carries a key and URL:
 | `S3_KEY_PREFIX`      | Key prefix for uploaded objects (default `scans`).        |
 | `MAX_UPLOAD_BYTES`   | Max accepted upload size (default 15 MB).                 |
 | `OCR_LANG`           | Tesseract language spec (default `deu+eng`).              |
+| `API_TOKEN`          | When set, every endpoint but `/health` requires `Authorization: Bearer <token>`. Unset leaves the service open. |
+| `LABELING`           | Set `true` to enable the labelling page; requires `API_TOKEN` or the service refuses to start. |
+
+When `API_TOKEN` is set, requests without a matching bearer token get `401`;
+`/health` stays reachable without one. With `API_TOKEN` unset the service is open
+(fine on a trusted home network).
 
 Standard AWS credential variables (`AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`)
 are used by the AWS SDK.
@@ -81,6 +87,7 @@ are used by the AWS SDK.
 | ------ | ----------------------------------------------- |
 | 200    | Success.                                        |
 | 400    | Upload is not a recognised image.               |
+| 401    | `API_TOKEN` is set and the bearer token is missing or wrong. |
 | 413    | Upload exceeds `MAX_UPLOAD_BYTES`.              |
 | 415    | HEIC/HEIF image — export as JPEG and retry.      |
 | 502    | Object storage upload failed.                   |

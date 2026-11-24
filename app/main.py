@@ -3,12 +3,15 @@
 from __future__ import annotations
 
 import base64
+import hmac
+from collections.abc import AsyncIterator, Awaitable, Callable
+from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, File, Query, Request, UploadFile
 from fastapi.responses import JSONResponse
 
 from . import __version__
-from .config import Settings, load_data_dir, load_settings
+from .config import Settings, load_data_dir, load_settings, validate_settings
 from .extract import extract_fields
 from .imaging import (
     DecodeError,
@@ -21,7 +24,18 @@ from .model import load_cached_model
 from .ocr import run_ocr, run_ocr_words
 from .storage import StorageError, upload_png
 
-app = FastAPI(title="receipt-scan", version=__version__)
+# Endpoints reachable without a token even when API_TOKEN is set.
+_PUBLIC_PATHS = frozenset({"/health"})
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI) -> AsyncIterator[None]:
+    # Refuse to start on invalid configuration (e.g. LABELING without a token).
+    validate_settings(load_settings())
+    yield
+
+
+app = FastAPI(title="receipt-scan", version=__version__, lifespan=lifespan)
 
 
 def get_settings() -> Settings:
@@ -31,6 +45,20 @@ def get_settings() -> Settings:
 
 def _error(status: int, message: str) -> JSONResponse:
     return JSONResponse(status_code=status, content={"error": message})
+
+
+@app.middleware("http")
+async def require_api_token(
+    request: Request, call_next: Callable[[Request], Awaitable[object]]
+) -> object:
+    """Guard every endpoint but /health with a bearer token when configured."""
+    settings = get_settings()
+    if settings.api_token is not None and request.url.path not in _PUBLIC_PATHS:
+        header = request.headers.get("authorization", "")
+        expected = f"Bearer {settings.api_token}"
+        if not hmac.compare_digest(header, expected):
+            return _error(401, "A valid API token is required.")
+    return await call_next(request)
 
 
 @app.get("/health")
