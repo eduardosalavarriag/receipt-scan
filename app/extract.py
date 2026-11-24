@@ -103,12 +103,13 @@ def detect_currency(text: str) -> str | None:
     return None
 
 
-def _amounts_in(line: str) -> list[Decimal]:
+def amounts_in(line: str) -> list[Decimal]:
+    """Every parseable money amount found in a single line of text."""
     parsed = (parse_amount(tok) for tok in _NUMBER_RE.findall(line))
     return [amount for amount in parsed if amount is not None]
 
 
-def _format(amount: Decimal) -> str:
+def format_amount(amount: Decimal) -> str:
     """Render a decimal as a plain string (e.g. ``Decimal('51.76')`` → ``51.76``)."""
     return format(amount, "f")
 
@@ -125,7 +126,7 @@ def extract_fields(text: str) -> ExtractedFields:
     keyword_amounts: list[Decimal] = []
     keyword_line: str | None = None
     for line in lines:
-        amounts = _amounts_in(line)
+        amounts = amounts_in(line)
         all_amounts.extend(amounts)
         if amounts and any(kw in line.upper() for kw in TOTAL_KEYWORDS):
             keyword_amounts.extend(amounts)
@@ -148,7 +149,7 @@ def extract_fields(text: str) -> ExtractedFields:
     }
     if total is not None:
         total_field: TotalField = {
-            "value": _format(total),
+            "value": format_amount(total),
             "currency": currency,
             "confidence": _RULE_CONFIDENCE,
         }

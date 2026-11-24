@@ -8,7 +8,7 @@ from fastapi import FastAPI, File, Query, Request, UploadFile
 from fastapi.responses import JSONResponse
 
 from . import __version__
-from .config import Settings, load_settings
+from .config import Settings, load_data_dir, load_settings
 from .extract import extract_fields
 from .imaging import (
     DecodeError,
@@ -17,7 +17,8 @@ from .imaging import (
     encode_png,
     process_receipt,
 )
-from .ocr import run_ocr
+from .model import load_cached_model
+from .ocr import run_ocr, run_ocr_words
 from .storage import StorageError, upload_png
 
 app = FastAPI(title="receipt-scan", version=__version__)
@@ -68,8 +69,15 @@ async def scan(
         return _error(400, str(exc))
 
     processed = process_receipt(rgb)
-    ocr_text = run_ocr(processed, settings.ocr_lang)
-    fields = extract_fields(ocr_text)
+    model = load_cached_model(load_data_dir())
+    if model is not None:
+        # ML pickers: score each OCR word/line; confidence is the picker's score.
+        words = run_ocr_words(processed, settings.ocr_lang)
+        fields = model.extract_fields(words)
+    else:
+        # No model: the simple rules over the plain OCR text.
+        ocr_text = run_ocr(processed, settings.ocr_lang)
+        fields = extract_fields(ocr_text)
 
     body: dict[str, object] = {
         "store": fields["store"],

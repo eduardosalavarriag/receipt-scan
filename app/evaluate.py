@@ -19,12 +19,18 @@ on the simple rules, it yields the baseline the accuracy guard (#10) protects.
 from __future__ import annotations
 
 from collections import Counter
+from collections.abc import Callable, Iterable
 from dataclasses import dataclass, field
 from decimal import Decimal
 from pathlib import Path
 
 from .dataset import Label, Word, iter_labels
 from .extract import extract_fields, parse_amount
+
+# A predictor turns the stored OCR words of one example into a predicted
+# ``(store, total)``. The default is the rules-based extractor; ``train`` swaps in
+# the ML pickers so the same report scores whichever extractor the service uses.
+Predictor = Callable[[list[Word]], tuple[str | None, str | None]]
 
 # A predicted store counts as correct if its normalised edit distance to the gold
 # store is within this fraction of the longer string (small OCR typos allowed).
@@ -39,18 +45,20 @@ class _Row:
     centre: float
     height: float
     items: list[tuple[int, str]]
+    box: list[int]
 
 
-def reconstruct_text(words: list[Word]) -> str:
-    """Lay stored words back out as text: group into rows, top-to-bottom.
+def group_lines(words: list[Word]) -> list[tuple[str, list[int]]]:
+    """Group stored words into text lines, each with a merged bounding box.
 
     Words whose vertical centres sit close together form one line (ordered left
-    to right); lines are ordered top to bottom. This is the text the current
-    text-based extractor consumes, standing in for live OCR output.
+    to right); lines are ordered top to bottom. Each line is returned as its
+    joined text and the axis-aligned box enclosing its words. This is the text
+    the extractor reads, standing in for live OCR output.
     """
     rows: list[_Row] = []
     for word in sorted(words, key=lambda w: ((w["box"][1] + w["box"][3]) / 2, w["box"][0])):
-        x0, y0, _x1, y1 = word["box"]
+        x0, y0, x1, y1 = word["box"]
         centre = (y0 + y1) / 2
         height = max(y1 - y0, 1)
         placed = False
@@ -58,17 +66,29 @@ def reconstruct_text(words: list[Word]) -> str:
             if abs(row.centre - centre) <= 0.6 * max(height, row.height):
                 row.items.append((x0, word["text"]))
                 row.height = max(row.height, height)
+                row.box = [
+                    min(row.box[0], x0), min(row.box[1], y0),
+                    max(row.box[2], x1), max(row.box[3], y1),
+                ]
                 placed = True
                 break
         if not placed:
-            rows.append(_Row(centre=centre, height=height, items=[(x0, word["text"])]))
+            rows.append(
+                _Row(centre=centre, height=height, items=[(x0, word["text"])],
+                     box=[x0, y0, x1, y1])
+            )
 
     rows.sort(key=lambda r: r.centre)
-    lines = []
+    lines: list[tuple[str, list[int]]] = []
     for row in rows:
         row.items.sort(key=lambda it: it[0])
-        lines.append(" ".join(text for _x, text in row.items))
-    return "\n".join(lines)
+        lines.append((" ".join(text for _x, text in row.items), row.box))
+    return lines
+
+
+def reconstruct_text(words: list[Word]) -> str:
+    """Lay stored words back out as newline-joined text lines, top to bottom."""
+    return "\n".join(text for text, _box in group_lines(words))
 
 
 # ---------------------------------------------------------------------------
@@ -192,7 +212,8 @@ class EvaluationResult:
 # ---------------------------------------------------------------------------
 # Running the extractor and voting
 # ---------------------------------------------------------------------------
-def _predict(words: list[Word]) -> tuple[str | None, str | None]:
+def rules_predict(words: list[Word]) -> tuple[str | None, str | None]:
+    """The default predictor: the rules-based extractor over reconstructed text."""
     fields = extract_fields(reconstruct_text(words))
     return fields["store"]["value"], fields["total"]["value"]
 
@@ -204,19 +225,29 @@ def _majority(values: list[str | None]) -> str | None:
     return best
 
 
-def _group_key(example_id: str, label: Label) -> str:
+def group_key(example_id: str, label: Label) -> str:
+    """The receipt a labelled example belongs to (its ``receipt_id`` or own id)."""
     receipt_id = label.get("receipt_id")
     return receipt_id if receipt_id else example_id
 
 
-def evaluate_data_dir(data_dir: Path | str) -> EvaluationResult:
-    """Score the current extractor over every labelled example in ``data_dir``."""
+def evaluate_data_dir(
+    data_dir: Path | str, predict: Predictor = rules_predict
+) -> EvaluationResult:
+    """Score ``predict`` over every labelled example in ``data_dir``."""
+    return evaluate_examples(iter_labels(data_dir), predict)
+
+
+def evaluate_examples(
+    examples_iter: Iterable[tuple[str, Label]], predict: Predictor = rules_predict
+) -> EvaluationResult:
+    """Score ``predict`` over the given labelled examples, folding retakes."""
     groups: dict[str, list[Label]] = {}
     order: list[str] = []
     examples = 0
-    for example_id, label in iter_labels(data_dir):
+    for example_id, label in examples_iter:
         examples += 1
-        key = _group_key(example_id, label)
+        key = group_key(example_id, label)
         if key not in groups:
             groups[key] = []
             order.append(key)
@@ -231,7 +262,7 @@ def evaluate_data_dir(data_dir: Path | str) -> EvaluationResult:
         gold_store = Counter(m.get("company") for m in members).most_common(1)[0][0]
         gold_total = Counter(m.get("total") for m in members).most_common(1)[0][0]
 
-        predictions = [_predict(m["words"]) for m in members]
+        predictions = [predict(m["words"]) for m in members]
         pred_store = _majority([p[0] for p in predictions])
         pred_total = _majority([p[1] for p in predictions])
 

@@ -4,5 +4,7 @@ pillow>=11.0
 numpy>=2.0
 pytesseract>=0.3.10
 opencv-python-headless>=4.9
+scikit-learn>=1.3
+joblib>=1.3
 boto3>=1.34
 python-multipart>=0.0.9

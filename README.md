@@ -121,6 +121,29 @@ carry an optional `receipt_id`; several photos of one physical receipt share it
 so `evaluate` folds them into a single majority vote. Point the data directory at
 a different path with `DATA_DIR` (default `/data`).
 
+## Training the ML pickers (`train`)
+
+Once a data folder is populated, fit the store and total pickers:
+
+```bash
+docker run --rm -v ./data:/data receipt-scan train
+```
+
+`train` builds one training row per OCR candidate, holds out a slice of the
+*receipts* (retakes of one receipt never straddle the split), fits two small
+`MLPClassifier` networks — one for the store, one for the total — and writes
+`model.joblib` into the data folder. It prints the held-out score through the same
+report as `evaluate`.
+
+Each candidate is scored on its **text** (hashed with a `HashingVectorizer`, so
+the model stores **no vocabulary** on disk) plus **position and shape** features;
+for totals, whether the line reads like a grand total and how its amount compares
+to the largest on the receipt. The picker's probability for the winning candidate
+becomes the answer's confidence.
+
+When `model.joblib` is present, `/scan` and `evaluate` use the pickers instead of
+the simple rules; otherwise they fall back to the rules automatically.
+
 ## Scoring the extractor (`evaluate`)
 
 Score the current extractor against any data folder:
